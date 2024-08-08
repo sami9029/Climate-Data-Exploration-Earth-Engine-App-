@@ -1,2 +1,3 @@
 # Climate-Data-Exploration-Earth-Engine-App-
 This is the world’s Climate data exploration app, an innovative tool developed using the Google Earth Engine (GEE). The app provides seamless interface for users from diverse background to explore and automatically generate charts and tables of climatic data throughout time series, as well as convenient download options. 
+The source code of the app was designed with ease of use in mind for future studies, ensuring that it is both accessible and straightforward for other users. Therefore, users are encouraged to make use of the GitHub repository, examine the source code, and adjust or modify the program to suit their own requirements.
