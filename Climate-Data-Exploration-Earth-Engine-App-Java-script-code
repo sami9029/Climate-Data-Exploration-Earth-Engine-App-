@@ -1,0 +1,517 @@
+//***********************************************************************************//
+////////////////Explore the Worlds Climate Data///////////////////////////////////////
+//***********************************************************************************//
+
+// This Earth engine app is developed by SAMUEL NEGUSSIE BEKELE for academic use only//
+//***********************************************************************************//
+
+// This app allows you to visualize climate-related data based on your selections. 
+//This panel features interactive charts that display time series data for various 
+//climate variables, such as total precipitation, temperature at 2 meters, surface net solar radiation, 
+//potential evaporation, and surface pressure
+
+
+//****************************Description *****************************************//
+// As you input your desired date range and geographic coordinates, along with selecting the temporal resolution
+//(Hourly, Daily, Monthly), the charts will dynamically update to reflect the data for the specified parameters. 
+//This enables you to effectively analyze and understand climate trends, providing valuable insights into local and 
+//regional climate patterns
+//*******************************************************************************//
+
+
+//*******************************************************************************//
+//**************************** Map and control panel *****************************************//
+//*******************************************************************************//
+
+// creation of main map
+var main_map= ui.Map(); 
+main_map.setOptions("HYBRID") // converting the main map to hybrid 
+
+// Configure the main map
+main_map.style().set('cursor', 'crosshair');
+// initialize at specific point 
+main_map.setCenter(20.52, 4.41, 3);
+// creation of divider function 
+function divider() {
+  return ui.Panel({
+    style: {
+      height: '3px',
+      backgroundColor: 'silver', 
+      margin: '10px 0' 
+    }
+  });
+}
+// creation of control panel 
+var control_Panel = ui.Panel({
+  style: {
+    width: '380px',  
+    position: 'top-left',
+    border: '1px solid black'
+  }
+});
+
+// creation of chart panel
+var chart_Panel = ui.Panel({
+  style: {
+    width: '350px', 
+    position: 'top-right',
+    border: '1px solid black'
+  }
+});
+
+// add title and description of the app
+var control_Panel_title = ui.Panel([
+  ui.Label({
+    value: 'Explore the Worlds Climate Data',
+    style: {fontSize: '30px', 
+    fontWeight: 'bold', 
+    color: 'darkblue'
+    }
+  }),
+  ui.Label('Explore global climate trends through interactive charts and data tables using the data from the Copernicus ERA5-Land dataset. Access detailed historical records of key climate variables to gain insights about your local or regional climate.'),
+  ui.Label('In this app, data is available from 1950 up to three months prior to the current real-time period.')
+]);
+control_Panel.add(control_Panel_title); // add title and description to the control panel
+
+// add title and description for chart panel 
+var chart_Panel_title = ui.Panel([
+  ui.Label({
+    value: 'Climate Time Series Charts',
+    style: {fontSize: '20px', fontWeight: 'normal', color: 'darkblue'}
+  }),
+  ui.Label('The Climate Data Time Series Charts panel allows you to visualize climate-related data based on your selections. This panel features interactive charts that display time series data for various climate variables')
+]);
+chart_Panel.add(chart_Panel_title); // add title and description to the chart panel
+control_Panel.add(divider()); 
+// add new panel for chart visualization only
+var chart_visualization_panel = ui.Panel();
+chart_Panel.add(chart_visualization_panel);
+chart_Panel.add(divider());
+//*********************************************************************************//
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+//***************************Instruction panel **************************************//
+// creat instruction panel 
+var overlay_instruction_panel = ui.Panel({
+  style: { stretch: 'horizontal', shown: false }
+});
+
+// Button to toggle overlay instructions
+var instruction_button = ui.Button({
+  label: 'Please read the instruction here.',
+  style: { stretch: 'horizontal', fontWeight: 'bold', color: 'darkblue'}
+});
+
+// Function to create instruction content
+function create_instruction_content() {
+  return ui.Panel([
+    ui.Label('Instruction for Users', {fontSize: '18px', fontWeight: 'bold', color: 'darkblue'}),
+    ui.Label('This Earth Engine app provides access to climate data imported from the Copernicus Climate Data Store. All data units are labeled according to the standards set by the data provider.'),
+    ui.Label('To ensure optimal system performance, please be mindful of the following memory limitations when generating data in this app:'),
+    ui.Label('Hourly Data: You can generate up to 6 months of hourly data at once.', {fontSize: '14px', fontWeight: 'bold', color: 'red'}),
+    ui.Label('Daily Data: You can generate up to 13 years of daily data at once.', {fontSize: '14px', fontWeight: 'bold', color: 'red'}),
+    ui.Label('Monthly Data: You can generate up to 416 years of monthly data at once.', {fontSize: '14px', fontWeight: 'bold', color: 'red'}),
+    ui.Label('Exceeding these recommended limits may result in memory issues and affect the application’s responsiveness. We encourage you to keep your data requests within these guidelines to provide the best user experience.'),
+    ui.Label('If you have any questions or need further assistance, please do not hesitate to reach out to the developer.', {fontSize: '14px', fontWeight: 'bold', color: 'black'})
+  ]);
+}
+
+// Event handler for instruction button
+instruction_button.onClick(function() {
+  // Toggle visibility of the instruction panel
+  if (overlay_instruction_panel.style().get('shown')) {
+    overlay_instruction_panel.style().set('shown', false);
+    instruction_button.setLabel('Instruction for Users >>');
+  } else {
+    overlay_instruction_panel.style().set('shown', true);
+    instruction_button.setLabel('Instruction for Users <<');
+    
+    // Clear previous content and add new content
+    overlay_instruction_panel.clear();
+    var information_provider = create_instruction_content(); // Create new content each time
+    overlay_instruction_panel.add(information_provider);
+  }
+});
+
+// Add the instruction button to the control panel
+control_Panel.add(instruction_button);
+
+// Add the overlay instruction panel to the control panel
+control_Panel.add(overlay_instruction_panel);
+
+control_Panel.add(divider());
+//*******************************************************************************//
+//**************************** Date input text boxes *****************************************//
+//*******************************************************************************//
+
+// Add date input text box to control panel
+var start_date_input = ui.Textbox({
+  placeholder: 'Enter start date ',
+});
+
+var end_date_input = ui.Textbox({
+  placeholder: 'Enter end date ',
+});
+
+// Add the date input text boxes to the control_Panel
+control_Panel.add(ui.Panel([
+  ui.Label({
+    value: 'Insert date range',
+    style: {fontSize: '18px', fontWeight: 'bold', color: 'black'}}), 
+    ui.Label({
+      value: 'Start and end dates must be written in yyyy-mm-dd fromat(e.g. 2024-01-01)',
+      style: {fontSize: '14px', fontWeight: 'normal', color: 'silver'}}),
+  start_date_input,
+  end_date_input
+]));
+
+control_Panel.add(divider());
+
+
+//*******************************************************************************//
+//**************************** coordinate input text boxes *****************************************//
+//*******************************************************************************//
+
+// add coordinate input text boxes (Longitude and latitude )
+//Longitude
+var longitude_input = ui.Textbox({
+  placeholder: 'Enter Longitude',
+});
+//Latitude
+var latitude_input = ui.Textbox({
+  placeholder: 'Enter Latitude',
+});
+
+// creat a new panel to put coordinate input text boxes
+var coordinate_panel = ui.Panel({
+  layout: ui.Panel.Layout.flow('horizontal'),
+  style: {stretch: 'horizontal'}
+});
+
+
+control_Panel.add(ui.Panel([
+  ui.Label({
+    value: 'Insert location coordinates',
+    style: {fontSize: '18px', fontWeight: 'bold', color: 'black'}}), 
+    ui.Label({
+      value: 'Enter the longitude and latitude coordinates for your location of interest.(e.g. Longitude 38.7525  Latitude 9.0192)',
+      style: {fontSize: '14px', fontWeight: 'normal', color: 'silver'}})
+]));
+
+coordinate_panel.add(longitude_input) // add longitude input text boxes to the coordinate panel
+coordinate_panel.add(latitude_input) // add latitude input text boxes to the coordinate panel
+control_Panel.add(coordinate_panel);// add the coordinate panel to the control panel
+control_Panel.add(divider());
+
+//*******************************************************************************//
+//**************************** selector for temporal resolution *****************************************//
+//*******************************************************************************//
+
+// temporal resolution panel 
+var temporal_resolution_panel = ui.Panel({
+  layout: ui.Panel.Layout.flow('horizontal'),
+  style: {stretch: 'horizontal'}
+});
+// Label for the selector
+var temporal_resolution_label = ui.Label({value: 'Select Temporal Resolution',
+    style: {fontSize: '14px', fontWeight: 'bold', color: 'black'}})
+// values of temporal resolution 
+var temporal_resolution= ['Hourly', 'Daily', 'Monthly'],
+temporal_resolution_dropbox = ui.Select(temporal_resolution, 'select');
+temporal_resolution_dropbox.style().set({stretch: 'horizontal'})
+temporal_resolution_panel.add(temporal_resolution_label)
+temporal_resolution_panel.add(temporal_resolution_dropbox)
+control_Panel.add(temporal_resolution_panel)
+
+//*******************************************************************************//
+//**************************** check box for climate data type *****************************************//
+//*******************************************************************************//
+
+var checkbox_panel = ui.Panel({
+  layout: ui.Panel.Layout.flow('vertical'),
+  style: {stretch: 'horizontal'}
+});
+
+// Create check boxs for different climate Data Options
+var pcpcheckbox = ui.Checkbox({
+  label: 'Total Precipitation (m)',
+});
+
+var tempcheckbox = ui.Checkbox({
+  label: 'Temprature at 2m (k)',
+});
+
+var srcheckbox = ui.Checkbox({
+  label: 'Surface net solar radiation (J/m^2)',
+});
+
+var pecheckbox = ui.Checkbox({
+  label: 'Potential evaporation(m)',
+});
+
+var techeckbox = ui.Checkbox({
+  label: 'Total evaporation(m of water equivalent)',
+});
+
+var srpcheckbox = ui.Checkbox({
+  label: 'Surface pressure (Pa)',
+});
+
+control_Panel.add(ui.Panel([
+  ui.Label({
+    value: 'Select Climate Data',
+    style: {fontSize: '18px', fontWeight: 'bold', color: 'black'}}), 
+    ui.Label({
+      value: 'Select the climate data of your need, from the listed options.',
+      style: {fontSize: '14px', fontWeight: 'normal', color: 'silver'}})
+]));
+
+checkbox_panel.add(pcpcheckbox)
+checkbox_panel.add(tempcheckbox)
+checkbox_panel.add(srcheckbox)
+checkbox_panel.add(pecheckbox)
+checkbox_panel.add(techeckbox)
+checkbox_panel.add(srpcheckbox)
+control_Panel.add(checkbox_panel);
+control_Panel.add(divider());
+
+
+//*******************************************************************************//
+//**************************** A function to generate climate data  *****************************************//
+//*******************************************************************************//
+
+// Create a variable 
+var ERA5_Land;
+// a function generate the data 
+// import all ERA5 climate data set and incorporate in the function 
+function Generate_map() {
+  // get input values from the user 
+  var start_date = start_date_input.getValue();
+  var end_date = end_date_input.getValue();
+  var lon = parseFloat(longitude_input.getValue());
+  var lat = parseFloat(latitude_input.getValue());
+  // Check if the dates and coordinates are provided
+  if (start_date && end_date && !isNaN(lon) && !isNaN(lat)) {
+    var start_date_Obj = ee.Date(start_date);
+    var end_date_Obj = ee.Date(end_date);
+    // clear the chart panel before adding new chart
+    chart_visualization_panel.clear()
+    // Identify selected temporal resolution by obtaining the value 
+    var selected_temporal_resolution = temporal_resolution_dropbox.getValue();
+    // Filter the ERA5-Land data based on the selected dates, coordinate and temporal resolution
+    if (selected_temporal_resolution === 'Daily'){
+      ERA5_Land = ee.ImageCollection('ECMWF/ERA5_LAND/DAILY_AGGR')
+                      .filter(ee.Filter.date(start_date_Obj, end_date_Obj));
+      
+    } else if (selected_temporal_resolution === 'Monthly'){
+      ERA5_Land = ee.ImageCollection('ECMWF/ERA5_LAND/MONTHLY_AGGR')
+                      .filter(ee.Filter.date(start_date_Obj, end_date_Obj));
+      
+    } else if (selected_temporal_resolution === 'Hourly'){
+      ERA5_Land = ee.ImageCollection('ECMWF/ERA5_LAND/HOURLY')
+                      .filter(ee.Filter.date(start_date_Obj, end_date_Obj));
+    }
+  // Create a point geometry from the input coordinates
+    var point = ee.Geometry.Point([lon, lat]);
+    // Add a dot layer to the map to show the selected location
+    var dot = ui.Map.Layer(point, {color: 'red'}, 'selected coordinate');
+    main_map.layers().set(1, dot);
+    main_map.centerObject(point, 8)
+    
+    // Create a chart precipitation time series data
+    if (pcpcheckbox.getValue()){
+    if (selected_temporal_resolution === 'Hourly'){
+    var pcp_chart = ui.Chart.image.series({
+      imageCollection: ERA5_Land.select('total_precipitation' ),
+      region: point,
+      reducer: ee.Reducer.mean(),
+      scale: 500,
+    });
+    } else {
+      var pcp_chart = ui.Chart.image.series({
+      imageCollection: ERA5_Land.select('total_precipitation_sum' ),
+      region: point,
+      reducer: ee.Reducer.sum(),
+      scale: 500,
+    });
+    }
+
+    pcp_chart.setOptions({
+      title: selected_temporal_resolution+ '_' + 'Precipitation time series ',
+      hAxis: {title: 'Date'},
+      vAxis: {
+        title: 'Total Precipitation (m)',
+        viewWindow: {
+          min: 0
+        }
+      },
+      legend: {position: 'right'},
+    });
+     // Add the chart to the control panel
+   chart_visualization_panel.add(pcp_chart);
+    }
+      //Create a chart temprature time series data
+   if (tempcheckbox.getValue()){
+    var temp_chart = ui.Chart.image.series({
+      imageCollection: ERA5_Land.select('temperature_2m'),
+      region: point,
+      reducer: ee.Reducer.mean(),
+      scale: 500,
+    });
+
+    temp_chart.setOptions({
+      title: selected_temporal_resolution+ '_' + 'Temprature time series chart ',
+      hAxis: {title: 'Date'},
+      vAxis: {
+        title: 'temprature at 2m (k)',
+      },
+      legend: {position: 'right'},
+    });
+
+    chart_visualization_panel.add(temp_chart);
+  }
+  //Create a chart surface_net_solar_radiation time series data
+   if (srcheckbox.getValue()){
+    if (selected_temporal_resolution === 'Hourly'){
+    var sr_chart = ui.Chart.image.series({
+      imageCollection: ERA5_Land.select('surface_net_solar_radiation'),
+      region: point,
+      reducer: ee.Reducer.mean(),
+      scale: 500,
+    });
+    } else {
+      var sr_chart = ui.Chart.image.series({
+      imageCollection: ERA5_Land.select('surface_net_solar_radiation_sum'),
+      region: point,
+      reducer: ee.Reducer.sum(),
+      scale: 500,
+    });
+    }
+
+    sr_chart.setOptions({
+      title: selected_temporal_resolution+ '_' + 'Surface net solar radiation time series',
+      hAxis: {title: 'Date'},
+      vAxis: {
+        title: 'Surface_net_solar_radiation (J/m^2)',
+      },
+      legend: {position: 'right'},
+    });
+
+    chart_visualization_panel.add(sr_chart);
+  }
+  //Create a chart potential_evaporation time series data
+   if (pecheckbox.getValue()){
+    if (selected_temporal_resolution === 'Hourly'){ 
+    var pe_chart = ui.Chart.image.series({
+      imageCollection: ERA5_Land.select('potential_evaporation'),
+      region: point,
+      reducer: ee.Reducer.mean(),
+      scale: 500,
+    });
+    } else {
+     var pe_chart = ui.Chart.image.series({
+      imageCollection: ERA5_Land.select('potential_evaporation_sum'),
+      region: point,
+      reducer: ee.Reducer.sum(),
+      scale: 500,
+    }); 
+    }
+
+    pe_chart.setOptions({
+      title: selected_temporal_resolution+ '_' + 'Potential evaporation',
+      hAxis: {title: 'Date'},
+      vAxis: {
+        title: 'Potential_evaporation(m)',
+      },
+      legend: {position: 'right'},
+    });
+
+    chart_visualization_panel.add(pe_chart);
+  }
+  //Create a chart potential_evaporation time series data
+   if (techeckbox.getValue()){
+    if (selected_temporal_resolution === 'Hourly'){ 
+    var te_chart = ui.Chart.image.series({
+      imageCollection: ERA5_Land.select('total_evaporation'),
+      region: point,
+      reducer: ee.Reducer.mean(),
+      scale: 500,
+    });
+    } else {
+     var te_chart = ui.Chart.image.series({
+      imageCollection: ERA5_Land.select('total_evaporation_sum'),
+      region: point,
+      reducer: ee.Reducer.sum(),
+      scale: 500,
+    }); 
+    }
+
+    te_chart.setOptions({
+      title: selected_temporal_resolution+ '_' + 'Total evaporation',
+      hAxis: {title: 'Date'},
+      vAxis: {
+        title: 'Total_evaporation(m of water equivalent)',
+      },
+      legend: {position: 'right'},
+    });
+
+    chart_visualization_panel.add(te_chart);
+  }
+  //Create a chart potential_evaporation time series data
+   if (srpcheckbox.getValue()){
+    var srp_chart = ui.Chart.image.series({
+      imageCollection: ERA5_Land.select('surface_pressure'),
+      region: point,
+      reducer: ee.Reducer.mean(),
+      scale: 500,
+    });
+
+    srp_chart.setOptions({
+      title: selected_temporal_resolution+ '_' + 'Surface pressure chart ',
+      hAxis: {title: 'Date'},
+      vAxis: {
+        title: 'Surface_pressure (Pa)',
+      },
+      legend: {position: 'right'},
+    });
+
+    chart_visualization_panel.add(srp_chart);
+  }
+  }
+  var chart_download_info = ui.Panel([
+  ui.Label({
+    value: ' ℹ️ To download the chart and CSV file, please click the arrow icon located in the top right corner of the chart.',
+    style: {fontSize: '14px', fontWeight: 'bold', color: 'black'}
+  }),
+  ui.Label({
+    value: '  More information about the data can be found at the Copernicus Climate Data Store..',
+    style: {fontSize: '14px', fontWeight: 'bold', color: 'black'}
+  }),
+]);
+chart_visualization_panel.add(chart_download_info);
+}
+
+
+//*******************************************************************************//
+//**************************** Create submit button  *****************************************//
+//*******************************************************************************//
+
+
+// Create a panel for the submit button
+var submit_button_panel = ui.Panel({layout: ui.Panel.Layout.flow('horizontal')});
+var submit_button = ui.Button({label: 'Generate Charts', style: {stretch: 'horizontal'}});
+submit_button_panel.add(submit_button);
+control_Panel.add(submit_button_panel);
+submit_button.onClick(Generate_map);
+//control_Panel.add(divider());
+
+//*******************************************************************************//
+//**************************** info panel  *****************************************//
+//*******************************************************************************//
+
+// Add all the panels and map to root 
+ui.root.clear();
+ui.root.add(control_Panel);
+ui.root.add(main_map);
+ui.root.add(chart_Panel); 
+
+/****************the end**********************/
